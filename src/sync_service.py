@@ -40,6 +40,8 @@ class SyncService:
                     doc['id'] = hit['_id']
                     # 转换日期时间格式
                     self._convert_datetime_fields(doc)
+                    # 转换嵌套对象为JSON字符串
+                    self._convert_nested_objects(doc)
                     data.append(doc)
                 
                 # 批量插入MySQL
@@ -76,6 +78,16 @@ class SyncService:
                 except ValueError:
                     # 如果转换失败，保持原值
                     pass
+    
+    def _convert_nested_objects(self, doc: dict):
+        """将嵌套的字典对象转换为JSON字符串"""
+        for key, value in doc.items():
+            if isinstance(value, dict):
+                doc[key] = json.dumps(value, ensure_ascii=False)
+            elif isinstance(value, list):
+                # 如果列表中的元素是字典，也转换为JSON字符串
+                if value and isinstance(value[0], dict):
+                    doc[key] = json.dumps(value, ensure_ascii=False)
     
     def _load_checkpoint(self, index_name: str) -> dict:
         """加载检查点"""

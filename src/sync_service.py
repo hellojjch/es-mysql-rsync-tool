@@ -127,11 +127,11 @@ class SyncService:
         for key, value in doc.items():
             if isinstance(value, dict):
                 # 确保使用 UTF-8 编码，并保持中文字符
-                doc[key] = json.dumps(value, ensure_ascii=False, encoding='utf-8')
+                doc[key] = json.dumps(value, ensure_ascii=False)
             elif isinstance(value, list):
                 # 如果列表中的元素是字典，也转换为JSON字符串
                 if value and isinstance(value[0], dict):
-                    doc[key] = json.dumps(value, ensure_ascii=False, encoding='utf-8')
+                    doc[key] = json.dumps(value, ensure_ascii=False)
             elif isinstance(value, str):
                 # 确保字符串使用 UTF-8 编码
                 try:

@@ -18,21 +18,34 @@ class ESClient:
             logger.error(f"获取索引mapping失败: {str(e)}")
             raise
     
-    def scroll_search(self, index_name: str, scroll_id: str = None):
-        """使用scroll API进行分页查询"""
+    def scroll_search(self, index_name: str, scroll_id: str = None, scroll_timeout: str = '5m'):
+        """使用scroll API获取数据"""
         try:
-            if scroll_id:
-                response = self.client.scroll(
-                    scroll_id=scroll_id,
-                    scroll=settings.SCROLL_TIMEOUT
-                )
-            else:
+            if scroll_id is None:
+                # 初始搜索
                 response = self.client.search(
                     index=index_name,
-                    scroll=settings.SCROLL_TIMEOUT,
-                    size=settings.BATCH_SIZE,
-                    body={"query": {"match_all": {}}}
+                    scroll=scroll_timeout,
+                    size=1000,  # 每批次获取的数据量
+                    body={
+                        "query": {
+                            "match_all": {}
+                        }
+                    }
                 )
+            else:
+                # 继续滚动
+                try:
+                    response = self.client.scroll(
+                        scroll_id=scroll_id,
+                        scroll=scroll_timeout
+                    )
+                except Exception as e:
+                    if "No search context found" in str(e):
+                        # 如果scroll context已过期，重新开始搜索
+                        logger.warning(f"Scroll context已过期，重新开始搜索: {str(e)}")
+                        return self.scroll_search(index_name, None, scroll_timeout)
+                    raise
             
             return response
         except Exception as e:
@@ -40,8 +53,12 @@ class ESClient:
             raise
     
     def close(self):
-        """关闭ES连接"""
-        self.client.close()
+        """关闭ES客户端连接"""
+        try:
+            if self.client:
+                self.client.close()
+        except Exception as e:
+            logger.error(f"关闭ES连接失败: {str(e)}")
 
     def get_all_indices(self) -> list:
         """获取所有索引列表"""

@@ -29,39 +29,68 @@ class SyncService:
             # 加载检查点
             checkpoint = self._load_checkpoint(index_name)
             scroll_id = checkpoint.get('scroll_id')
+            processed_count = checkpoint.get('processed_count', 0)
             
+            # 如果存在检查点，验证scroll_id是否有效
+            if scroll_id:
+                try:
+                    # 尝试使用现有的scroll_id
+                    response = self.es_client.scroll_search(index_name, scroll_id)
+                except Exception as e:
+                    if "No search context found" in str(e):
+                        # 如果scroll_id无效，重置检查点
+                        logger.warning(f"检查点中的scroll_id已失效，重新开始同步")
+                        scroll_id = None
+                        processed_count = 0
+                    else:
+                        raise
+            
+            # 开始同步循环
             while True:
-                # 使用scroll API获取数据
-                response = self.es_client.scroll_search(index_name, scroll_id)
-                scroll_id = response['_scroll_id']
-                hits = response['hits']['hits']
-                
-                if not hits:
-                    break
-                
-                # 处理数据
-                data = []
-                for hit in hits:
-                    doc = hit['_source']
-                    doc['id'] = hit['_id']
-                    # 转换日期时间格式
-                    self._convert_datetime_fields(doc)
-                    # 转换嵌套对象为JSON字符串
-                    self._convert_nested_objects(doc)
-                    data.append(doc)
-                
-                # 批量插入MySQL
-                self.mysql_client.bulk_insert(index_name, data)
-                
-                # 保存检查点
-                self._save_checkpoint(index_name, {
-                    'scroll_id': scroll_id,
-                    'processed_count': checkpoint.get('processed_count', 0) + len(data)
-                })
-                
-                logger.info(f"已处理 {len(data)} 条数据")
+                try:
+                    # 使用scroll API获取数据
+                    response = self.es_client.scroll_search(index_name, scroll_id)
+                    scroll_id = response['_scroll_id']
+                    hits = response['hits']['hits']
+                    
+                    if not hits:
+                        break
+                    
+                    # 处理数据
+                    data = []
+                    for hit in hits:
+                        doc = hit['_source']
+                        doc['id'] = hit['_id']
+                        # 转换日期时间格式
+                        self._convert_datetime_fields(doc)
+                        # 转换嵌套对象为JSON字符串
+                        self._convert_nested_objects(doc)
+                        data.append(doc)
+                    
+                    # 批量插入MySQL
+                    self.mysql_client.bulk_insert(index_name, data)
+                    
+                    # 更新处理计数
+                    processed_count += len(data)
+                    
+                    # 保存检查点
+                    self._save_checkpoint(index_name, {
+                        'scroll_id': scroll_id,
+                        'processed_count': processed_count
+                    })
+                    
+                    logger.info(f"已处理 {processed_count} 条数据")
+                    
+                except Exception as e:
+                    logger.error(f"处理批次数据时发生错误: {str(e)}")
+                    # 保存当前进度
+                    self._save_checkpoint(index_name, {
+                        'scroll_id': scroll_id,
+                        'processed_count': processed_count
+                    })
+                    raise
             
-            logger.info(f"索引 {index_name} 同步完成")
+            logger.info(f"索引 {index_name} 同步完成，共处理 {processed_count} 条数据")
             
         except Exception as e:
             logger.error(f"同步失败: {str(e)}")

@@ -3,6 +3,8 @@ from loguru import logger
 from src.es_client import ESClient
 from src.mysql_client import MySQLClient
 from src.config import settings
+from datetime import datetime
+import pytz
 
 class SyncService:
     def __init__(self):
@@ -36,6 +38,8 @@ class SyncService:
                 for hit in hits:
                     doc = hit['_source']
                     doc['id'] = hit['_id']
+                    # 转换日期时间格式
+                    self._convert_datetime_fields(doc)
                     data.append(doc)
                 
                 # 批量插入MySQL
@@ -57,6 +61,21 @@ class SyncService:
         finally:
             self.es_client.close()
             self.mysql_client.close()
+    
+    def _convert_datetime_fields(self, doc: dict):
+        """转换文档中的日期时间字段格式"""
+        for key, value in doc.items():
+            if isinstance(value, str) and value.endswith('Z'):
+                try:
+                    # 解析ISO格式的UTC时间
+                    dt = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+                    # 转换为本地时间
+                    dt = dt.replace(tzinfo=pytz.UTC).astimezone()
+                    # 转换为MySQL可接受的格式
+                    doc[key] = dt.strftime('%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    # 如果转换失败，保持原值
+                    pass
     
     def _load_checkpoint(self, index_name: str) -> dict:
         """加载检查点"""

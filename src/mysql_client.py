@@ -4,14 +4,24 @@ from loguru import logger
 from src.config import settings
 import json
 from sqlalchemy import inspect
+from sqlalchemy.exc import SQLAlchemyError
+from urllib.parse import quote_plus
+from typing import Dict, Any, Optional
+from datetime import datetime
 
 class MySQLClient:
-    def __init__(self):
+    def __init__(self, host: str, port: int, user: str, password: str, database: str):
+        # URL 编码密码，处理特殊字符
+        encoded_password = quote_plus(password)
         self.engine = create_engine(
-            f"mysql+mysqlconnector://{settings.MYSQL_USER}:{settings.MYSQL_PASSWORD}@"
-            f"{settings.MYSQL_HOST}:{settings.MYSQL_PORT}/{settings.MYSQL_DATABASE}"
+            f'mysql+mysqlconnector://{user}:{encoded_password}@{host}:{port}/{database}',
+            pool_size=5,
+            max_overflow=10,
+            pool_timeout=30,
+            pool_recycle=1800
         )
         self.metadata = MetaData()
+        self.connection = None
     
     def create_table_from_mapping(self, index_name: str, mapping: dict):
         """根据ES的mapping创建MySQL表"""

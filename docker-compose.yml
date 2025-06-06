@@ -7,38 +7,69 @@ services:
       dockerfile: docker/Dockerfile
     volumes:
       - ./data:/app/data
+      - ./logs:/app/logs
+      - ./.env:/app/.env
     environment:
-      - ES_HOST=elasticsearch
-      - ES_PORT=9200
-      - MYSQL_HOST=mysql
-      - MYSQL_PORT=3306
-      - MYSQL_USER=root
-      - MYSQL_PASSWORD=your_password
-      - MYSQL_DATABASE=es_sync
+      - ES_HOST=${ES_HOST:-elasticsearch}
+      - ES_PORT=${ES_PORT:-9200}
+      - ES_USERNAME=${ES_USERNAME:-}
+      - ES_PASSWORD=${ES_PASSWORD:-}
+      - MYSQL_HOST=${MYSQL_HOST:-mysql}
+      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_USER=${MYSQL_USER:-root}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-root}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-es_sync}
+      - BATCH_SIZE=${BATCH_SIZE:-1000}
+      - SCROLL_TIMEOUT=${SCROLL_TIMEOUT:-5m}
+      - CHECKPOINT_FILE=${CHECKPOINT_FILE:-checkpoint.json}
+      - INDEX_PREFIX=${INDEX_PREFIX:-test}
+      - SYNC_TIME=${SYNC_TIME:-02:00}
+      - TIMEZONE=${TIMEZONE:-Asia/Shanghai}
     depends_on:
-      - elasticsearch
-      - mysql
-    command: python /app/main.py --index your_index_name
+      elasticsearch:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    command: >
+      sh -c "if [ "$${SCHEDULE:-false}" = "true" ]; then
+        python /app/main.py --schedule;
+      else
+        python /app/main.py --date $${DATE:-$(date -d 'yesterday' +%Y-%m-%d)} --prefix $${PREFIX:-test};
+      fi"
+    restart: unless-stopped
 
   elasticsearch:
     image: elasticsearch:8.11.0
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
       - "9200:9200"
     volumes:
       - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q 'status.*green'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 
   mysql:
     image: mysql:8.0
     environment:
-      - MYSQL_ROOT_PASSWORD=your_password
-      - MYSQL_DATABASE=es_sync
+      - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD:-root}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-es_sync}
     ports:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_PASSWORD:-root}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 
 volumes:
   es-data:

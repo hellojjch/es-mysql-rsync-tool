@@ -27,15 +27,16 @@ class MySQLClient:
             columns = []
             properties = mapping.get('properties', {})
             
-            # 添加id字段
-            columns.append("`id` VARCHAR(255) PRIMARY KEY")
-            
             # 根据mapping创建字段
             for field_name, field_info in properties.items():
                 field_type = field_info.get('type', 'text')
                 column_def = self._get_column_definition(field_name, field_type)
                 if column_def:
                     columns.append(column_def)
+            
+            # 添加主键约束
+            if 'id' in properties:
+                columns.append("PRIMARY KEY (`id`)")
             
             # 创建表
             create_table_sql = f"CREATE TABLE `{index_name}` ({', '.join(columns)})"

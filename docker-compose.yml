@@ -18,6 +18,7 @@ services:
     depends_on:
       - elasticsearch
       - mysql
+    command: python /app/src/main.py --index your_index_name
 
   elasticsearch:
     image: elasticsearch:8.11.0

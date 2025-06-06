@@ -19,4 +19,4 @@ RUN mkdir -p /app/data
 WORKDIR /app/data
 
 # 运行同步程序
-ENTRYPOINT ["python", "-m", "src.main"] 
+ENTRYPOINT ["python", "/app/src/main.py"] 

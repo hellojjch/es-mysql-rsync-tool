@@ -1,6 +1,6 @@
 import argparse
 from loguru import logger
-from .sync_service import SyncService
+from src.sync_service import SyncService
 
 def main():
     parser = argparse.ArgumentParser(description='ES数据同步到MySQL工具')

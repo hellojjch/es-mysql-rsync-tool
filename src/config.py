@@ -2,23 +2,28 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 
 class Settings(BaseSettings):
-    # Elasticsearch配置
-    ES_HOST: str = "localhost"
-    ES_PORT: int = 9200
+    # ES配置
+    ES_HOST: str
+    ES_PORT: int
     ES_USERNAME: Optional[str] = None
     ES_PASSWORD: Optional[str] = None
     
     # MySQL配置
-    MYSQL_HOST: str = "localhost"
-    MYSQL_PORT: int = 3306
-    MYSQL_USER: str = "root"
-    MYSQL_PASSWORD: str = ""
-    MYSQL_DATABASE: str = "es_sync"
+    MYSQL_HOST: str
+    MYSQL_PORT: int
+    MYSQL_USER: str
+    MYSQL_PASSWORD: str
+    MYSQL_DATABASE: str
     
     # 同步配置
-    BATCH_SIZE: int = 1000
-    SCROLL_TIMEOUT: str = "5m"
-    CHECKPOINT_FILE: str = "checkpoint.json"
+    BATCH_SIZE: int
+    SCROLL_TIMEOUT: str
+    CHECKPOINT_FILE: str
+    
+    # 索引配置
+    INDEX_PREFIX: str
+    SYNC_TIME: str
+    TIMEZONE: str
     
     class Config:
         env_file = ".env"

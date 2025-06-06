@@ -41,4 +41,13 @@ class ESClient:
     
     def close(self):
         """关闭ES连接"""
-        self.client.close() 
+        self.client.close()
+
+    def get_all_indices(self) -> list:
+        """获取所有索引列表"""
+        try:
+            response = self.client.indices.get_alias().keys()
+            return list(response)
+        except Exception as e:
+            logger.error(f"获取索引列表失败: {str(e)}")
+            raise 

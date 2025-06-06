@@ -3,6 +3,7 @@ from sqlalchemy.dialects.mysql import LONGTEXT
 from loguru import logger
 from src.config import settings
 import json
+from sqlalchemy import inspect
 
 class MySQLClient:
     def __init__(self):
@@ -15,6 +16,12 @@ class MySQLClient:
     def create_table_from_mapping(self, index_name: str, mapping: dict):
         """根据ES的mapping创建MySQL表"""
         try:
+            # 检查表是否已存在
+            inspector = inspect(self.engine)
+            if inspector.has_table(index_name):
+                logger.info(f"表 {index_name} 已存在")
+                return
+
             columns = []
             properties = mapping.get('properties', {})
             
@@ -30,7 +37,7 @@ class MySQLClient:
             
             # 创建表
             table = Table(index_name, self.metadata, *columns)
-            table.create(self.engine, checkfirst=True)
+            table.create(self.engine)
             logger.info(f"表 {index_name} 创建成功")
             
         except Exception as e:

@@ -30,9 +30,13 @@ class MySQLClient:
             # 根据mapping创建字段
             for field_name, field_info in properties.items():
                 field_type = field_info.get('type', 'text')
-                column_def = self._get_column_definition(field_name, field_type)
-                if column_def:
-                    columns.append(column_def)
+                # 如果是id字段，强制使用VARCHAR类型
+                if field_name == 'id':
+                    columns.append("`id` VARCHAR(255)")
+                else:
+                    column_def = self._get_column_definition(field_name, field_type)
+                    if column_def:
+                        columns.append(column_def)
             
             # 添加主键约束
             if 'id' in properties:

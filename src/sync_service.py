@@ -69,15 +69,23 @@ class SyncService:
         for key, value in doc.items():
             if isinstance(value, str) and value.endswith('Z'):
                 try:
-                    # 解析ISO格式的UTC时间
-                    dt = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+                    # 解析ISO格式的UTC时间（支持带毫秒的格式）
+                    dt = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%fZ')
                     # 转换为本地时间
                     dt = dt.replace(tzinfo=pytz.UTC).astimezone()
                     # 转换为MySQL可接受的格式
                     doc[key] = dt.strftime('%Y-%m-%d %H:%M:%S')
                 except ValueError:
-                    # 如果转换失败，保持原值
-                    pass
+                    try:
+                        # 尝试不带毫秒的格式
+                        dt = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+                        # 转换为本地时间
+                        dt = dt.replace(tzinfo=pytz.UTC).astimezone()
+                        # 转换为MySQL可接受的格式
+                        doc[key] = dt.strftime('%Y-%m-%d %H:%M:%S')
+                    except ValueError:
+                        # 如果转换失败，保持原值
+                        pass
     
     def _convert_nested_objects(self, doc: dict):
         """将嵌套的字典对象转换为JSON字符串"""

@@ -14,11 +14,16 @@ class MySQLClient:
         # URL 编码密码，处理特殊字符
         encoded_password = quote_plus(password)
         self.engine = create_engine(
-            f'mysql+mysqlconnector://{user}:{encoded_password}@{host}:{port}/{database}',
+            f'mysql+mysqlconnector://{user}:{encoded_password}@{host}:{port}/{database}'
+            '?charset=utf8mb4&collation=utf8mb4_unicode_ci',
             pool_size=5,
             max_overflow=10,
             pool_timeout=30,
-            pool_recycle=1800
+            pool_recycle=1800,
+            connect_args={
+                'charset': 'utf8mb4',
+                'use_unicode': True
+            }
         )
         self.metadata = MetaData()
         self.connection = None

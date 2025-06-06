@@ -9,7 +9,13 @@ import pytz
 class SyncService:
     def __init__(self):
         self.es_client = ESClient()
-        self.mysql_client = MySQLClient()
+        self.mysql_client = MySQLClient(
+            host=settings.MYSQL_HOST,
+            port=settings.MYSQL_PORT,
+            user=settings.MYSQL_USER,
+            password=settings.MYSQL_PASSWORD,
+            database=settings.MYSQL_DATABASE
+        )
     
     def sync_index(self, index_name: str):
         """同步指定索引的数据到MySQL"""
@@ -91,11 +97,20 @@ class SyncService:
         """将嵌套的字典对象转换为JSON字符串"""
         for key, value in doc.items():
             if isinstance(value, dict):
-                doc[key] = json.dumps(value, ensure_ascii=False)
+                # 确保使用 UTF-8 编码，并保持中文字符
+                doc[key] = json.dumps(value, ensure_ascii=False, encoding='utf-8')
             elif isinstance(value, list):
                 # 如果列表中的元素是字典，也转换为JSON字符串
                 if value and isinstance(value[0], dict):
-                    doc[key] = json.dumps(value, ensure_ascii=False)
+                    doc[key] = json.dumps(value, ensure_ascii=False, encoding='utf-8')
+            elif isinstance(value, str):
+                # 确保字符串使用 UTF-8 编码
+                try:
+                    # 尝试解码和重新编码，确保是有效的 UTF-8
+                    doc[key] = value.encode('utf-8').decode('utf-8')
+                except UnicodeError:
+                    # 如果解码失败，保持原值
+                    pass
     
     def _load_checkpoint(self, index_name: str) -> dict:
         """加载检查点"""

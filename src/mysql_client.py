@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, MetaData, Table, Column, String, Integer, Float, DateTime, JSON
 from sqlalchemy.dialects.mysql import LONGTEXT
 from loguru import logger
-from .config import settings
+from src.config import settings
 import json
 
 class MySQLClient:

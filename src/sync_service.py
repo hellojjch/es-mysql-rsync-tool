@@ -1,8 +1,8 @@
 import json
 from loguru import logger
-from .es_client import ESClient
-from .mysql_client import MySQLClient
-from .config import settings
+from src.es_client import ESClient
+from src.mysql_client import MySQLClient
+from src.config import settings
 
 class SyncService:
     def __init__(self):

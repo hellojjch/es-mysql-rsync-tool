@@ -1,6 +1,6 @@
 from elasticsearch import Elasticsearch
 from loguru import logger
-from .config import settings
+from src.config import settings
 
 class ESClient:
     def __init__(self):

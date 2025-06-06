@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制源代码
 COPY src/ /app/src/
+COPY main.py /app/
 
 # 设置环境变量
 ENV PYTHONPATH=/app
@@ -19,4 +20,4 @@ RUN mkdir -p /app/data
 WORKDIR /app/data
 
 # 运行同步程序
-ENTRYPOINT ["python", "/app/src/main.py"] 
+ENTRYPOINT ["python", "/app/main.py"] 
